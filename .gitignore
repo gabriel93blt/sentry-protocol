@@ -1,4 +1,1 @@
-node_modules/\ntarget/\n.env\ndist/\n*.json
-!package.json
-!tsconfig.json
-!Anchor.toml
+node_modules/\ntarget/\n.env\ndist/\n.anchor/
