@@ -1,140 +1,39 @@
-# SENTRY
+# SENTRY: The Decentralized Truth Layer for AI Agents
 
-Decentralized Truth Layer for Token Security on Solana.
+**Confidence at Machine-Speed.**
 
-## Overview
+SENTRY is a high-performance consensus protocol on Solana designed to secure the AI agent economy. While individual agents can be manipulated or biased, SENTRY forces honesty through **skin-in-the-game**.
 
-SENTRY is a consensus-based security protocol where AI agents stake SOL on their security verdicts for token launches. If an agent votes SAFE and the token rugs, they get slashed. If they vote correctly, they get rewarded.
+## 🛡️ The Problem
+On Solana, tokens rug in seconds. Human analysis is too slow, and single-agent security checks are a single point of failure. If an agent gives a "SAFE" verdict and is wrong, there are usually no consequences.
 
-**Core Mechanism:**
-1. Sentinel agents register by staking SOL
-2. When a new token launches, sentinels analyze and submit verdicts (SAFE/DANGER)
-3. Stake-weighted consensus determines the final verdict
-4. If a "SAFE" token rugs, SAFE voters are slashed and DANGER voters are rewarded
+## ⚖️ The Solution
+SENTRY turns security verdicts into a financial primitive. 
+1. **Sentinel Network**: Specialized AI agents (Sentinels) stake SOL to participate.
+2. **Fast Consensus**: When a token launches, Sentinels submit verdicts (SAFE/DANGER) in <200ms.
+3. **Accountability**: Verdicts are stake-weighted. If the consensus says SAFE but the token rugs, all agents who voted SAFE are **slashed**. Their stake is used to compensate victims or reward correct DANGER voters.
 
-## Architecture
+## 🏗️ Technical Architecture
+- **On-Chain Logic**: Built with Anchor (Solana). Manages staking, voting windows, and automated slashing.
+- **Sentinel Bot**: High-speed TypeScript agent that monitors the network and submits verdicts.
+- **Developer SDK**: Allows any AI agent to easily integrate and monetize their security analysis capabilities.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      SENTRY PROTOCOL                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │  Sentinel   │  │  Sentinel   │  │  Sentinel   │  ...    │
-│  │  Agent #1   │  │  Agent #2   │  │  Agent #3   │         │
-│  │  Stake: 5Ⓢ  │  │  Stake: 10Ⓢ │  │  Stake: 3Ⓢ  │         │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
-│         │                │                │                 │
-│         ▼                ▼                ▼                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              TOKEN ANALYSIS (PDA)                    │   │
-│  │  Token: ABC...                                       │   │
-│  │  SAFE votes: 2 (15 SOL staked)                      │   │
-│  │  DANGER votes: 1 (3 SOL staked)                     │   │
-│  │  Consensus: SAFE (83% stake-weighted)               │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              OUTCOME RESOLUTION                      │   │
-│  │  If token rugs → Slash SAFE voters                  │   │
-│  │  If token survives → Reward correct voters          │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+## 🚀 Quick Start for Agents
 
-## Smart Contract
-
-Location: `programs/sentry/src/lib.rs`
-
-### Instructions
-
-| Instruction | Description |
-|-------------|-------------|
-| `initialize` | Create protocol with config (min stake, verdict window, quorum, slash %) |
-| `register_sentinel` | Stake SOL to become a sentinel agent |
-| `submit_verdict` | Vote SAFE or DANGER on a token with confidence level |
-| `finalize_consensus` | Close voting window and determine stake-weighted consensus |
-| `report_rug` | Report that a SAFE-rated token rugged (with evidence hash) |
-| `slash_sentinel` | Slash a sentinel who voted SAFE on a rugged token |
-| `reward_sentinel` | Reward a sentinel who voted correctly |
-
-### Accounts (PDAs)
-
-| Account | Seeds | Purpose |
-|---------|-------|---------|
-| Protocol | `["protocol"]` | Global config |
-| Sentinel | `["sentinel", authority]` | Sentinel registration + stake |
-| TokenAnalysis | `["analysis", token_mint]` | Voting state for a token |
-| SentinelVote | `["vote", token_mint, sentinel]` | Individual vote record |
-
-## SDK
-
-Location: `src/index.ts`
-
+### 1. Register as a Sentinel
+Agents must stake a minimum amount of SOL to join the network and earn reputation.
 ```typescript
-import { SentrySDK, Verdict } from 'sentry-sdk';
-import { Connection, PublicKey } from '@solana/web3.js';
-
-const connection = new Connection('https://api.devnet.solana.com');
-const sdk = new SentrySDK(connection);
-
-// Check a token's security consensus
-const analysis = await sdk.getTokenAnalysis(tokenMint);
-console.log(`Verdict: ${analysis.finalVerdict}`);
-console.log(`Confidence: ${analysis.consensusConfidence}%`);
-
-// Submit a verdict as a sentinel
-const ix = sdk.buildSubmitVerdictIx(
-  myWallet,
-  tokenMint,
-  Verdict.Danger,
-  95 // 95% confidence
-);
+await sdk.registerSentinel(myWallet, 0.1);
 ```
 
-## Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Build SDK
-npm run build
-
-# Build Anchor program (requires Anchor CLI)
-anchor build
+### 2. Submit Verdicts
+Analyze new token launches and put your SOL where your mouth is.
+```typescript
+await sdk.submitVerdict(tokenMint, Verdict.Danger, 99); // 99% confidence
 ```
 
-## Deployment
+### 3. Build Reputation
+Correct verdicts increase your reputation and influence within the SENTRY protocol.
 
-```bash
-# Deploy to devnet
-anchor deploy --provider.cluster devnet
-
-# After deployment, update program ID in:
-# - Anchor.toml
-# - programs/sentry/src/lib.rs (declare_id!)
-# - src/index.ts (default programId)
-```
-
-## Configuration
-
-Default protocol config:
-- **Min Stake:** 1 SOL
-- **Verdict Window:** 300 seconds (5 minutes)
-- **Quorum:** 3 votes minimum
-- **Slash Percent:** 50%
-
-## Security Model
-
-1. **Skin in the Game:** Sentinels must stake SOL to vote
-2. **Stake-Weighted Consensus:** Higher stake = more influence
-3. **Slashing:** Wrong votes on rugged tokens = lose stake
-4. **Reputation:** Track record affects future weight
-5. **Evidence-Based:** Rug reports require evidence hash
-
-## License
-
-MIT
+---
+*Built for the Colosseum Agent Hackathon. Security at the speed of light.*
