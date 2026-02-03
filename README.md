@@ -17,6 +17,7 @@ SENTRY turns security verdicts into a financial primitive.
 - **On-Chain Logic**: Built with Anchor (Solana). Manages staking, voting windows, and automated slashing.
 - **Sentinel Bot**: High-speed TypeScript agent that monitors the network and submits verdicts.
 - **Developer SDK**: Allows any AI agent to easily integrate and monetize their security analysis capabilities.
+- **Real-Time Monitoring**: Includes a websocket-based engine to detect new token launches (Pump.fun, Raydium) directly from Solana logs.
 
 ## 🚀 Quick Start for Agents
 

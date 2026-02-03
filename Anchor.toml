@@ -18,3 +18,5 @@ wallet = "~/.config/solana/sentry-dev.json"
 [scripts]
 test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 setup = "node dist/scripts/setup.js"
+bot = "node dist/scripts/sentinel-bot.js"
+live = "node dist/scripts/sentinel-realtime.js"

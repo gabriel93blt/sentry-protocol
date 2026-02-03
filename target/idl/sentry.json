@@ -1,0 +1,1254 @@
+{
+  "address": "EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm",
+  "metadata": {
+    "name": "sentry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SENTRY - Decentralized Truth Layer for Token Security"
+  },
+  "instructions": [
+    {
+      "name": "finalize_consensus",
+      "docs": [
+        "Finalize consensus after voting window closes"
+      ],
+      "discriminator": [
+        158,
+        21,
+        141,
+        117,
+        251,
+        129,
+        243,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_analysis",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  110,
+                  97,
+                  108,
+                  121,
+                  115,
+                  105,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the Sentry protocol with admin"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "config",
+          "type": {
+            "defined": {
+              "name": "ProtocolConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_sentinel",
+      "docs": [
+        "Register as a sentinel agent (stake SOL)"
+      ],
+      "discriminator": [
+        211,
+        153,
+        110,
+        133,
+        11,
+        56,
+        104,
+        223
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  110,
+                  116,
+                  105,
+                  110,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "report_rug",
+      "docs": [
+        "Report a rug pull - triggers slashing for wrong verdicts"
+      ],
+      "discriminator": [
+        75,
+        236,
+        22,
+        109,
+        66,
+        247,
+        98,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_analysis",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  110,
+                  97,
+                  108,
+                  121,
+                  115,
+                  105,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reporter",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "evidence_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "reward_sentinel",
+      "docs": [
+        "Reward sentinels who voted correctly (DANGER on rugged, or SAFE on verified safe)"
+      ],
+      "discriminator": [
+        169,
+        74,
+        156,
+        193,
+        61,
+        219,
+        141,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "sentinel",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  110,
+                  116,
+                  105,
+                  110,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sentinel.authority",
+                "account": "Sentinel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel_vote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              },
+              {
+                "kind": "account",
+                "path": "sentinel.authority",
+                "account": "Sentinel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_analysis",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  110,
+                  97,
+                  108,
+                  121,
+                  115,
+                  105,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "slash_sentinel",
+      "docs": [
+        "Slash a sentinel who voted SAFE on a rugged token"
+      ],
+      "discriminator": [
+        131,
+        138,
+        154,
+        23,
+        191,
+        27,
+        164,
+        251
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  110,
+                  116,
+                  105,
+                  110,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sentinel.authority",
+                "account": "Sentinel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel_vote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              },
+              {
+                "kind": "account",
+                "path": "sentinel.authority",
+                "account": "Sentinel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_analysis",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  110,
+                  97,
+                  108,
+                  121,
+                  115,
+                  105,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_analysis.token_mint",
+                "account": "TokenAnalysis"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "submit_verdict",
+      "docs": [
+        "Submit a verdict on a token (SAFE or DANGER)"
+      ],
+      "discriminator": [
+        138,
+        102,
+        56,
+        22,
+        229,
+        130,
+        105,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  110,
+                  116,
+                  105,
+                  110,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_analysis",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  110,
+                  97,
+                  108,
+                  121,
+                  115,
+                  105,
+                  115
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sentinel_vote",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "sentinel"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "verdict",
+          "type": {
+            "defined": {
+              "name": "Verdict"
+            }
+          }
+        },
+        {
+          "name": "confidence",
+          "type": "u8"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Protocol",
+      "discriminator": [
+        45,
+        39,
+        101,
+        43,
+        115,
+        72,
+        131,
+        40
+      ]
+    },
+    {
+      "name": "Sentinel",
+      "discriminator": [
+        176,
+        148,
+        133,
+        149,
+        234,
+        182,
+        172,
+        1
+      ]
+    },
+    {
+      "name": "SentinelVote",
+      "discriminator": [
+        147,
+        239,
+        251,
+        21,
+        210,
+        183,
+        11,
+        20
+      ]
+    },
+    {
+      "name": "TokenAnalysis",
+      "discriminator": [
+        5,
+        226,
+        129,
+        195,
+        177,
+        241,
+        205,
+        59
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ConsensusReached",
+      "discriminator": [
+        240,
+        211,
+        75,
+        133,
+        165,
+        96,
+        113,
+        26
+      ]
+    },
+    {
+      "name": "RugReported",
+      "discriminator": [
+        122,
+        238,
+        200,
+        168,
+        252,
+        126,
+        157,
+        33
+      ]
+    },
+    {
+      "name": "SentinelRegistered",
+      "discriminator": [
+        96,
+        13,
+        58,
+        29,
+        114,
+        106,
+        113,
+        69
+      ]
+    },
+    {
+      "name": "SentinelRewarded",
+      "discriminator": [
+        238,
+        123,
+        16,
+        5,
+        85,
+        216,
+        164,
+        164
+      ]
+    },
+    {
+      "name": "SentinelSlashed",
+      "discriminator": [
+        240,
+        199,
+        189,
+        61,
+        70,
+        47,
+        151,
+        212
+      ]
+    },
+    {
+      "name": "VerdictSubmitted",
+      "discriminator": [
+        152,
+        183,
+        133,
+        217,
+        208,
+        91,
+        243,
+        209
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InsufficientStake",
+      "msg": "Insufficient stake amount"
+    },
+    {
+      "code": 6001,
+      "name": "SentinelInactive",
+      "msg": "Sentinel is inactive"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidConfidence",
+      "msg": "Invalid confidence value (0-100)"
+    },
+    {
+      "code": 6003,
+      "name": "VotingClosed",
+      "msg": "Voting window has closed"
+    },
+    {
+      "code": 6004,
+      "name": "VotingStillOpen",
+      "msg": "Voting window still open"
+    },
+    {
+      "code": 6005,
+      "name": "QuorumNotReached",
+      "msg": "Quorum not reached"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyFinalized",
+      "msg": "Already finalized"
+    },
+    {
+      "code": 6007,
+      "name": "NotFinalized",
+      "msg": "Not yet finalized"
+    },
+    {
+      "code": 6008,
+      "name": "AlreadyReported",
+      "msg": "Already reported as rug"
+    },
+    {
+      "code": 6009,
+      "name": "AlreadyMarkedDanger",
+      "msg": "Token already marked as danger"
+    },
+    {
+      "code": 6010,
+      "name": "NotRugged",
+      "msg": "Token not rugged"
+    },
+    {
+      "code": 6011,
+      "name": "VotedCorrectly",
+      "msg": "Sentinel voted correctly"
+    },
+    {
+      "code": 6012,
+      "name": "VotedIncorrectly",
+      "msg": "Sentinel voted incorrectly"
+    },
+    {
+      "code": 6013,
+      "name": "AlreadySlashed",
+      "msg": "Already slashed"
+    },
+    {
+      "code": 6014,
+      "name": "AlreadyRewarded",
+      "msg": "Already rewarded"
+    }
+  ],
+  "types": [
+    {
+      "name": "ConsensusReached",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "verdict",
+            "type": {
+              "defined": {
+                "name": "Verdict"
+              }
+            }
+          },
+          {
+            "name": "confidence",
+            "type": "u8"
+          },
+          {
+            "name": "total_stake",
+            "type": "u64"
+          },
+          {
+            "name": "total_votes",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Protocol",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_stake",
+            "type": "u64"
+          },
+          {
+            "name": "verdict_window",
+            "type": "u32"
+          },
+          {
+            "name": "quorum",
+            "type": "u16"
+          },
+          {
+            "name": "slash_percent",
+            "type": "u8"
+          },
+          {
+            "name": "total_agents",
+            "type": "u64"
+          },
+          {
+            "name": "total_verdicts",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProtocolConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "min_stake",
+            "type": "u64"
+          },
+          {
+            "name": "verdict_window",
+            "type": "u32"
+          },
+          {
+            "name": "quorum",
+            "type": "u16"
+          },
+          {
+            "name": "slash_percent",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RugReported",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "evidence_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "slash_pool",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Sentinel",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "reputation",
+            "type": "u16"
+          },
+          {
+            "name": "correct_verdicts",
+            "type": "u64"
+          },
+          {
+            "name": "total_verdicts",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "registered_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SentinelRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sentinel",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SentinelRewarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sentinel",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "reputation",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SentinelSlashed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sentinel",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SentinelVote",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sentinel",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "verdict",
+            "type": {
+              "defined": {
+                "name": "Verdict"
+              }
+            }
+          },
+          {
+            "name": "confidence",
+            "type": "u8"
+          },
+          {
+            "name": "stake_at_vote",
+            "type": "u64"
+          },
+          {
+            "name": "submitted_at",
+            "type": "i64"
+          },
+          {
+            "name": "is_slashed",
+            "type": "bool"
+          },
+          {
+            "name": "is_rewarded",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenAnalysis",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "finalized_at",
+            "type": "i64"
+          },
+          {
+            "name": "total_votes",
+            "type": "u64"
+          },
+          {
+            "name": "safe_votes",
+            "type": "u64"
+          },
+          {
+            "name": "danger_votes",
+            "type": "u64"
+          },
+          {
+            "name": "safe_stake",
+            "type": "u64"
+          },
+          {
+            "name": "danger_stake",
+            "type": "u64"
+          },
+          {
+            "name": "final_verdict",
+            "type": {
+              "defined": {
+                "name": "Verdict"
+              }
+            }
+          },
+          {
+            "name": "consensus_confidence",
+            "type": "u8"
+          },
+          {
+            "name": "is_finalized",
+            "type": "bool"
+          },
+          {
+            "name": "is_rugged",
+            "type": "bool"
+          },
+          {
+            "name": "rug_evidence",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "rug_reported_at",
+            "type": "i64"
+          },
+          {
+            "name": "slash_pool",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Verdict",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Safe"
+          },
+          {
+            "name": "Danger"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VerdictSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sentinel",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "verdict",
+            "type": {
+              "defined": {
+                "name": "Verdict"
+              }
+            }
+          },
+          {
+            "name": "confidence",
+            "type": "u8"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
