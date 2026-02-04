@@ -6,6 +6,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from dashboard folder
+app.use(express.static('../dashboard'));
+
 const PORT = process.env.PORT || 3001;
 const MOLTBOOK_API_BASE = 'https://www.moltbook.com/api/v1';
 
@@ -352,6 +355,11 @@ app.get('/api/v1/protocol/stats', (req, res) => {
             lastPrediction: null
         }))
     });
+});
+
+// Root route - serve dashboard
+app.get('/', (req, res) => {
+    res.sendFile('index.html', { root: '../dashboard' });
 });
 
 // Health check
