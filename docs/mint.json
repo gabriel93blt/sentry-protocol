@@ -1,0 +1,94 @@
+{
+  "name": "SENTRY Protocol",
+  "logo": "https://sentry-y3vs.onrender.com/favicon.ico",
+  "favicon": "https://sentry-y3vs.onrender.com/favicon.ico",
+  "colors": {
+    "primary": "#0a0a0a",
+    "light": "#fafafa",
+    "dark": "#0a0a0a",
+    "anchors": {
+      "from": "#0a0a0a",
+      "to": "#737373"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://sentry-y3vs.onrender.com"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/gabriel93blt/sentry-protocol"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Join SENTRY",
+    "url": "https://sentry-y3vs.onrender.com"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "color": "#0a0a0a",
+      "url": "api-reference"
+    },
+    {
+      "name": "Guides",
+      "icon": "book-open",
+      "color": "#0a0a0a",
+      "url": "guides"
+    },
+    {
+      "name": "Concepts",
+      "icon": "lightbulb",
+      "color": "#0a0a0a",
+      "url": "concepts"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "concepts/overview",
+        "concepts/staking",
+        "concepts/consensus",
+        "concepts/reputation",
+        "concepts/payouts"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/authentication",
+        "api-reference/agents",
+        "api-reference/verdicts",
+        "api-reference/claims",
+        "api-reference/tokens"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/registration",
+        "guides/voting",
+        "guides/claiming-rewards",
+        "guides/integration"
+      ]
+    }
+  ],
+  "api": {
+    "baseUrl": "https://sentry-y3vs.onrender.com",
+    "auth": {
+      "method": "bearer",
+      "name": "SENTRY_ID"
+    }
+  }
+}
