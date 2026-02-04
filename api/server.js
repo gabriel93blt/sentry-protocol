@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const db = require('./db');
 
 const app = express();
 app.use(cors());
@@ -11,11 +12,6 @@ app.use(express.static('./dashboard'));
 
 const PORT = process.env.PORT || 3001;
 const MOLTBOOK_API_BASE = 'https://www.moltbook.com/api/v1';
-
-// In-memory storage (replace with database in production)
-const agents = new Map();
-const verdicts = new Map();
-const pendingRegistrations = new Map();
 
 /**
  * Verify Moltbook registration
@@ -35,8 +31,6 @@ async function verifyMoltbook(credentials) {
     try {
         let apiKey = moltbook_api_key;
         
-        // If only SAID provided, we can't verify without API key
-        // In production, you'd lookup the api_key from said in your database
         if (!apiKey && moltbook_said) {
             return {
                 success: false,
@@ -45,7 +39,6 @@ async function verifyMoltbook(credentials) {
             };
         }
 
-        // Verify with Moltbook
         const response = await fetch(`${MOLTBOOK_API_BASE}/agents/me`, {
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
@@ -76,7 +69,6 @@ async function verifyMoltbook(credentials) {
 
         const agent = data.agent;
 
-        // Check if claimed (Moltbook uses is_claimed field)
         if (!agent.is_claimed) {
             return {
                 success: false,
@@ -85,7 +77,6 @@ async function verifyMoltbook(credentials) {
             };
         }
 
-        // If SAID provided, verify it matches
         if (moltbook_said && agent.name !== moltbook_said) {
             return {
                 success: false,
@@ -118,7 +109,6 @@ async function verifyMoltbook(credentials) {
 app.post('/api/v1/agents/register', async (req, res) => {
     const { moltbook_api_key, moltbook_said, wallet_address, stake_amount } = req.body;
 
-    // Validate required fields
     if (!wallet_address || !stake_amount) {
         return res.status(400).json({
             success: false,
@@ -134,133 +124,161 @@ app.post('/api/v1/agents/register', async (req, res) => {
         return res.status(verification.error === 'Agent not claimed' ? 403 : 401).json(verification);
     }
 
-    // Step 2: Check if already registered on SENTRY
-    for (const [id, agent] of agents) {
-        if (agent.moltbook_said === verification.moltbook_said) {
+    // Step 2: Check if already registered
+    try {
+        const existingAgent = await db.getAgentByMoltbookSaid(verification.moltbook_said);
+        if (existingAgent) {
             return res.status(409).json({
                 success: false,
                 error: 'Agent already registered',
-                hint: `Agent ${verification.moltbook_said} is already registered with SENTRY ID: ${id}`
+                hint: `Agent ${verification.moltbook_said} is already registered with SENTRY ID: ${existingAgent.sentry_id}`
             });
         }
+    } catch (error) {
+        console.error('Error checking existing agent:', error);
     }
 
     // Step 3: Create SENTRY agent
     const sentry_id = `sentry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const trust_score = 100 + Math.floor((verification.moltbook_karma || 0) / 10); // Bonus for Moltbook karma
+    const trust_score = 100 + Math.floor((verification.moltbook_karma || 0) / 10);
 
-    const agent = {
+    const agentData = {
         sentry_id,
         moltbook_said: verification.moltbook_said,
         moltbook_verified: true,
         moltbook_karma: verification.moltbook_karma,
-        wallet: wallet_address,
+        wallet_address,
         stake: stake_amount,
         trust_score,
         reputation: trust_score,
-        correct_verdicts: 0,
-        total_verdicts: 0,
-        status: 'active',
-        registered_at: new Date().toISOString()
+        status: 'active'
     };
 
-    agents.set(sentry_id, agent);
-
-    res.json({
-        success: true,
-        agent: {
-            sentry_id: agent.sentry_id,
-            moltbook_said: agent.moltbook_said,
-            moltbook_verified: agent.moltbook_verified,
-            wallet: agent.wallet,
-            stake: agent.stake,
-            trust_score: agent.trust_score,
-            status: agent.status
-        }
-    });
+    try {
+        const newAgent = await db.createAgent(agentData);
+        
+        res.json({
+            success: true,
+            agent: {
+                sentry_id: newAgent.sentry_id,
+                moltbook_said: newAgent.moltbook_said,
+                moltbook_verified: newAgent.moltbook_verified,
+                wallet: newAgent.wallet_address,
+                stake: newAgent.stake,
+                trust_score: newAgent.trust_score,
+                status: newAgent.status
+            }
+        });
+    } catch (error) {
+        console.error('Error creating agent:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create agent',
+            hint: error.message
+        });
+    }
 });
 
 /**
  * GET /api/v1/agents/me
- * Get current agent info (requires SENTRY_ID)
+ * Get current agent info
  */
-app.get('/api/v1/agents/me', (req, res) => {
+app.get('/api/v1/agents/me', async (req, res) => {
     const sentry_id = req.headers.authorization?.replace('Bearer ', '');
     
-    if (!sentry_id || !agents.has(sentry_id)) {
+    if (!sentry_id) {
         return res.status(401).json({
             success: false,
-            error: 'Invalid or missing SENTRY_ID',
+            error: 'Missing SENTRY_ID',
             hint: 'Provide your SENTRY_ID in the Authorization header'
         });
     }
 
-    const agent = agents.get(sentry_id);
-    res.json({
-        success: true,
-        agent
-    });
+    try {
+        const agent = await db.getAgentBySentryId(sentry_id);
+        
+        if (!agent) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid SENTRY_ID',
+                hint: 'Agent not found'
+            });
+        }
+
+        res.json({ success: true, agent });
+    } catch (error) {
+        console.error('Error fetching agent:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch agent'
+        });
+    }
 });
 
 /**
  * GET /api/v1/agents/:id/rewards
  * Get claimable rewards for an agent
  */
-app.get('/api/v1/agents/:id/rewards', (req, res) => {
+app.get('/api/v1/agents/:id/rewards', async (req, res) => {
     const { id } = req.params;
     
-    if (!agents.has(id)) {
-        return res.status(404).json({
+    try {
+        const agent = await db.getAgentBySentryId(id);
+        if (!agent) {
+            return res.status(404).json({
+                success: false,
+                error: 'Agent not found'
+            });
+        }
+
+        const rewards = await db.getRewardsByAgent(id);
+        const total_claimable = rewards.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+
+        res.json({
+            success: true,
+            rewards,
+            total_claimable
+        });
+    } catch (error) {
+        console.error('Error fetching rewards:', error);
+        res.status(500).json({
             success: false,
-            error: 'Agent not found'
+            error: 'Failed to fetch rewards'
         });
     }
-
-    // Mock rewards - in production, query from Solana
-    res.json({
-        success: true,
-        rewards: [
-            { token: '7xR9...PUMP', amount: 0.5, claimable: true },
-            { token: '9jK1...MOON', amount: 0.02, claimable: true }
-        ],
-        total_claimable: 0.52
-    });
 });
 
 /**
  * GET /api/v1/verdicts
- * Get active/pending verdicts
+ * Get verdicts
  */
-app.get('/api/v1/verdicts', (req, res) => {
+app.get('/api/v1/verdicts', async (req, res) => {
     const { status } = req.query;
     
-    // Convert Map to array and sort by submitted time (newest first)
-    let verdictsList = Array.from(verdicts.values())
-        .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
-    
-    // Filter by status if provided
-    if (status && status !== 'all') {
-        verdictsList = verdictsList.filter(v => v.status === status);
+    try {
+        const verdicts = await db.getVerdicts({ status });
+        res.json({ success: true, verdicts });
+    } catch (error) {
+        console.error('Error fetching verdicts:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch verdicts'
+        });
     }
-    
-    res.json({
-        success: true,
-        verdicts: verdictsList
-    });
 });
 
 /**
  * POST /api/v1/verdicts
- * Submit a verdict (requires SENTRY_ID)
+ * Submit a verdict
  */
-app.post('/api/v1/verdicts', (req, res) => {
+app.post('/api/v1/verdicts', async (req, res) => {
     const sentry_id = req.headers.authorization?.replace('Bearer ', '');
     const { token_mint, verdict, confidence, stake } = req.body;
 
-    if (!sentry_id || !agents.has(sentry_id)) {
+    if (!sentry_id) {
         return res.status(401).json({
             success: false,
-            error: 'Invalid or missing SENTRY_ID'
+            error: 'Missing SENTRY_ID'
         });
     }
 
@@ -272,72 +290,81 @@ app.post('/api/v1/verdicts', (req, res) => {
         });
     }
 
-    const agent = agents.get(sentry_id);
-    const verdict_id = `v_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date();
-    
-    // Create verdict object
-    const verdictData = {
-        id: verdict_id,
-        token_mint,
-        token: token_mint.substring(0, 8) + '...',
-        verdict,
-        confidence: confidence || 50,
-        stake: stake || 0.1,
-        sentry_id,
-        agent_name: agent.moltbook_said,
-        submitted_at: now.toISOString(),
-        time: now.toLocaleTimeString('en-US', { hour12: false }),
-        status: 'pending',
-        safe_votes: verdict === 'safe' ? 1 : 0,
-        rug_votes: verdict === 'rug' ? 1 : 0,
-        safe_stake: verdict === 'safe' ? (stake || 0.1) : 0,
-        rug_stake: verdict === 'rug' ? (stake || 0.1) : 0,
-        total_votes: 1
-    };
-    
-    // Store verdict
-    verdicts.set(verdict_id, verdictData);
-    
-    // Update agent stats
-    agent.total_verdicts += 1;
-    agent.lastPrediction = `${verdict.toUpperCase()} on ${verdictData.token}`;
-
-    res.json({
-        success: true,
-        message: 'Verdict submitted',
-        verdict: {
-            id: verdict_id,
-            token: verdictData.token,
-            verdict,
-            confidence: verdictData.confidence,
-            stake: verdictData.stake,
-            submitted_at: verdictData.submitted_at
+    try {
+        const agent = await db.getAgentBySentryId(sentry_id);
+        if (!agent) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid SENTRY_ID'
+            });
         }
-    });
+
+        const verdict_id = `v_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const now = new Date();
+        
+        const verdictData = {
+            verdict_id,
+            token_mint,
+            token: token_mint.substring(0, 8) + '...',
+            verdict,
+            confidence: confidence || 50,
+            stake: stake || 0.1,
+            sentry_id,
+            agent_name: agent.moltbook_said,
+            status: 'pending',
+            safe_votes: verdict === 'safe' ? 1 : 0,
+            rug_votes: verdict === 'rug' ? 1 : 0,
+            safe_stake: verdict === 'safe' ? (stake || 0.1) : 0,
+            rug_stake: verdict === 'rug' ? (stake || 0.1) : 0,
+            total_votes: 1
+        };
+        
+        const newVerdict = await db.createVerdict(verdictData);
+        
+        // Update agent stats
+        await db.updateAgent(sentry_id, {
+            total_verdicts: agent.total_verdicts + 1,
+            last_prediction: `${verdict.toUpperCase()} on ${verdictData.token}`
+        });
+
+        res.json({
+            success: true,
+            message: 'Verdict submitted',
+            verdict: {
+                id: newVerdict.verdict_id,
+                token: newVerdict.token,
+                verdict: newVerdict.verdict,
+                confidence: newVerdict.confidence,
+                stake: newVerdict.stake,
+                submitted_at: newVerdict.submitted_at
+            }
+        });
+    } catch (error) {
+        console.error('Error submitting verdict:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to submit verdict'
+        });
+    }
 });
 
 /**
  * POST /api/v1/claims
- * Claim rewards (requires SENTRY_ID)
+ * Claim rewards
  */
-app.post('/api/v1/claims', (req, res) => {
+app.post('/api/v1/claims', async (req, res) => {
     const sentry_id = req.headers.authorization?.replace('Bearer ', '');
-    const { token_mint } = req.body;
-
-    if (!sentry_id || !agents.has(sentry_id)) {
+    
+    if (!sentry_id) {
         return res.status(401).json({
             success: false,
-            error: 'Invalid or missing SENTRY_ID'
+            error: 'Missing SENTRY_ID'
         });
     }
 
-    // In production: submit claim to Solana program
     res.json({
         success: true,
-        message: 'Rewards claimed',
-        token: token_mint,
-        amount: 0.5
+        message: 'Rewards claimed (mock - Solana integration pending)'
     });
 });
 
@@ -345,19 +372,14 @@ app.post('/api/v1/claims', (req, res) => {
  * GET /api/v1/tokens/:mint
  * Get token analysis
  */
-app.get('/api/v1/tokens/:mint', (req, res) => {
+app.get('/api/v1/tokens/:mint', async (req, res) => {
     const { mint } = req.params;
 
-    // Mock token analysis - in production, query from Solana
     res.json({
         success: true,
         token: {
             mint,
             status: 'analyzing',
-            safe_votes: 1,
-            rug_votes: 0,
-            total_stake: 0.83,
-            consensus: null,
             created_at: new Date().toISOString()
         }
     });
@@ -367,46 +389,43 @@ app.get('/api/v1/tokens/:mint', (req, res) => {
  * GET /api/v1/protocol/stats
  * Get protocol statistics
  */
-app.get('/api/v1/protocol/stats', (req, res) => {
-    // Calculate stats from registered agents
-    let totalStaked = 0;
-    let totalPredictions = 0;
-    for (const agent of agents.values()) {
-        totalStaked += parseFloat(agent.stake) || 0;
-        totalPredictions += agent.total_verdicts || 0;
-    }
+app.get('/api/v1/protocol/stats', async (req, res) => {
+    try {
+        const agents = await db.getAllAgents();
+        const verdicts = await db.getVerdicts();
+        
+        const totalStaked = agents.reduce((sum, a) => sum + parseFloat(a.stake || 0), 0);
+        const rugsDetected = verdicts.filter(v => v.status === 'finalized' && v.final_verdict === 'rug').length;
 
-    // Calculate rug detections (finalized verdicts where result was RUG)
-    let rugsDetected = 0;
-    for (const verdict of verdicts.values()) {
-        if (verdict.status === 'finalized' && verdict.final_verdict === 'rug') {
-            rugsDetected++;
-        }
+        res.json({
+            success: true,
+            stats: {
+                tvl: agents.length > 0 ? totalStaked : null,
+                agentCount: agents.length > 0 ? agents.length : null,
+                rugsDetected: rugsDetected > 0 ? rugsDetected : null,
+                accuracy: null,
+                quorumCurrent: agents.length > 0 ? Math.min(agents.length, 3) : null,
+                quorumRequired: 3,
+                totalVerdicts: verdicts.length > 0 ? verdicts.length : null
+            },
+            agents: agents.map(a => ({
+                id: a.moltbook_said,
+                name: a.moltbook_said,
+                trust: a.trust_score,
+                stake: a.stake,
+                predictions: a.total_verdicts,
+                correct: a.correct_verdicts,
+                accuracy: a.total_verdicts > 0 ? Math.round((a.correct_verdicts / a.total_verdicts) * 100) : 0,
+                lastPrediction: a.last_prediction || null
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch stats'
+        });
     }
-
-    // Return stats
-    res.json({
-        success: true,
-        stats: {
-            tvl: agents.size > 0 ? totalStaked : null,
-            agentCount: agents.size > 0 ? agents.size : null,
-            rugsDetected: rugsDetected > 0 ? rugsDetected : null,
-            accuracy: null,
-            quorumCurrent: agents.size > 0 ? Math.min(agents.size, 3) : null,
-            quorumRequired: 3,
-            totalVerdicts: verdicts.size > 0 ? verdicts.size : null
-        },
-        agents: Array.from(agents.values()).map(a => ({
-            id: a.moltbook_said,
-            name: a.moltbook_said,
-            trust: a.trust_score,
-            stake: a.stake,
-            predictions: a.total_verdicts,
-            correct: a.correct_verdicts,
-            accuracy: a.total_verdicts > 0 ? Math.round((a.correct_verdicts / a.total_verdicts) * 100) : 0,
-            lastPrediction: a.lastPrediction || null
-        }))
-    });
 });
 
 // Root route - serve dashboard
@@ -415,11 +434,17 @@ app.get('/', (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', agents: agents.size });
+app.get('/health', async (req, res) => {
+    try {
+        const agentCount = await db.getAgentCount();
+        res.json({ status: 'ok', agents: agentCount, database: 'connected' });
+    } catch (error) {
+        res.status(500).json({ status: 'error', database: 'disconnected' });
+    }
 });
 
 app.listen(PORT, () => {
     console.log(`SENTRY API running on port ${PORT}`);
-    console.log(`Moltbook integration: ENABLED`);
+    console.log(`Supabase: CONNECTED`);
+    console.log(`Moltbook: ENABLED`);
 });
