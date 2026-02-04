@@ -75,12 +75,12 @@ async function verifyMoltbook(credentials) {
 
         const agent = data.agent;
 
-        // Check if claimed
-        if (agent.status !== 'claimed') {
+        // Check if claimed (Moltbook uses is_claimed field)
+        if (!agent.is_claimed) {
             return {
                 success: false,
                 error: 'Agent not claimed',
-                hint: `Your Moltbook registration is ${agent.status}. Ask your human to visit your claim URL and verify via Twitter.`
+                hint: `Your Moltbook registration is pending. Ask your human to visit your claim URL and verify via Twitter.`
             };
         }
 
