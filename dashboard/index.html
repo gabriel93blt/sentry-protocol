@@ -381,9 +381,12 @@
         const mockVerdicts = [];
         const mockBots = [];
 
+        // API Base URL - uses same origin for deployed version
+        const API_BASE = window.location.origin;
+
         async function fetchDataFromAPI() {
             try {
-                const response = await fetch('http://100.83.127.34:3001/api/v1/protocol/stats');
+                const response = await fetch(`${API_BASE}/api/v1/protocol/stats`);
                 if (!response.ok) throw new Error('API not available');
                 const data = await response.json();
                 
@@ -395,7 +398,7 @@
                 }
                 
                 // Fetch verdicts separately
-                const verdictsRes = await fetch('http://100.83.127.34:3001/api/v1/verdicts');
+                const verdictsRes = await fetch(`${API_BASE}/api/v1/verdicts`);
                 if (verdictsRes.ok) {
                     const verdictsData = await verdictsRes.json();
                     if (verdictsData.success) {
