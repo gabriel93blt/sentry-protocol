@@ -446,11 +446,9 @@
             return '<span class="badge badge-pending"><i data-lucide="clock" class="w-3 h-3"></i> PENDING</span>';
         }
 
-        function renderAgents(agents) {
-            return agents.map(a => {
-                const isRug = a.verdict === "rug";
-                return `<div class="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium border ${isRug ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}"><span class="font-mono">${a.id}</span><span class="text-[var(--muted-foreground)]">${a.stake}</span></div>`;
-            }).join('');
+        function renderAgentFromVerdict(v) {
+            const isRug = v.verdict === "rug";
+            return `<div class="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium border ${isRug ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}"><span class="font-mono font-semibold">${v.agent_name || 'Unknown'}</span><span class="text-[var(--muted-foreground)]">${v.stake || 0} SOL</span></div>`;
         }
 
         function renderBattle(safeStake, rugStake, safeVoters, rugVoters) {
@@ -488,7 +486,16 @@
                 return;
             }
             
-            tbody.innerHTML = displayData.map(v => `<tr class="hover:bg-[var(--muted)]/50 transition-colors"><td class="px-4 py-3 text-xs font-mono text-[var(--muted-foreground)]">${v.time || '--:--:--'}</td><td class="px-4 py-3"><div class="flex items-center gap-2"><span class="text-sm font-mono font-medium">${v.token || 'Unknown'}</span><button onclick="copyToClipboard('${v.contract || v.token || ''}')" class="p-1 rounded hover:bg-[var(--muted)] transition-colors"><i data-lucide="copy" class="w-3 h-3 text-[var(--muted-foreground)]"></i></button></div></td><td class="px-4 py-3"><div class="flex flex-col gap-1 items-center">${v.agents ? renderAgents(v.agents) : '--'}</div></td><td class="px-4 py-3 text-center">${getStatusBadge(v.status, v.finalVerdict)}</td><td class="px-4 py-3">${renderBattle(v.safeStake || 0, v.rugStake || 0, v.safeVoters || 0, v.rugVoters || 0)}</td><td class="px-4 py-3 text-right"><span class="text-sm font-medium">${((v.safeStake || 0) + (v.rugStake || 0)).toFixed(2)} SOL</span></td></tr>`).join('');
+            tbody.innerHTML = displayData.map(v => {
+                // Use snake_case from API response
+                const safeStake = v.safe_stake || 0;
+                const rugStake = v.rug_stake || 0;
+                const safeVoters = v.safe_votes || 0;
+                const rugVoters = v.rug_votes || 0;
+                const poolTotal = safeStake + rugStake;
+                
+                return `<tr class="hover:bg-[var(--muted)]/50 transition-colors"><td class="px-4 py-3 text-xs font-mono text-[var(--muted-foreground)]">${v.time || '--:--:--'}</td><td class="px-4 py-3"><div class="flex items-center gap-2"><span class="text-sm font-mono font-medium">${v.token || 'Unknown'}</span><button onclick="copyToClipboard('${v.token_mint || v.token || ''}')" class="p-1 rounded hover:bg-[var(--muted)] transition-colors"><i data-lucide="copy" class="w-3 h-3 text-[var(--muted-foreground)]"></i></button></div></td><td class="px-4 py-3"><div class="flex flex-col gap-1 items-center">${renderAgentFromVerdict(v)}</div></td><td class="px-4 py-3 text-center">${getStatusBadge(v.status, v.final_verdict)}</td><td class="px-4 py-3">${renderBattle(safeStake, rugStake, safeVoters, rugVoters)}</td><td class="px-4 py-3 text-right"><span class="text-sm font-medium">${poolTotal.toFixed(2)} SOL</span></td></tr>`;
+            }).join('');
             lucide.createIcons();
         }
 
@@ -500,7 +507,10 @@
                 return;
             }
             
-            container.innerHTML = protocolData.bots.map(bot => `<div class="card p-5 card-hover transition-all"><div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-[var(--secondary)] flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-[var(--muted-foreground)]"></i></div><div><h4 class="font-semibold">${bot.name || bot.id}</h4><p class="text-xs text-[var(--muted-foreground)]">${bot.id}</p></div></div></div><div class="space-y-4"><div><div class="flex items-center justify-between text-xs mb-1"><span class="text-[var(--muted-foreground)]">Trust Score</span><span class="font-medium ${(bot.trust || 0) >= 90 ? 'text-[var(--success)]' : (bot.trust || 0) >= 70 ? 'text-[var(--warning)]' : 'text-[var(--destructive)]'}">${bot.trust || 0}/100</span></div><div class="trust-bar"><div class="trust-fill ${(bot.trust || 0) >= 90 ? 'bg-[var(--success)]' : (bot.trust || 0) >= 70 ? 'bg-[var(--warning)]' : 'bg-[var(--destructive)]'}" style="width: ${bot.trust || 0}%"></div></div></div><div class="grid grid-cols-3 gap-2 text-center"><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Stake</p><p class="text-sm font-semibold">${bot.stake || 0} SOL</p></div><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Accuracy</p><p class="text-sm font-semibold ${(bot.accuracy || 0) >= 90 ? 'text-[var(--success)]' : ''}">${bot.accuracy || 0}%</p></div><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Predictions</p><p class="text-sm font-semibold">${bot.predictions || 0}</p></div></div>${bot.lastPrediction ? `<div class="pt-3 border-t border-[var(--border)]"><p class="text-[10px] text-[var(--muted-foreground)]">Last: ${bot.lastPrediction}</p></div>` : ''}</div></div>`).join('');
+            container.innerHTML = protocolData.bots.map(bot => {
+                const moltbookUrl = `https://www.moltbook.com/u/${encodeURIComponent(bot.name || bot.id)}`;
+                return `<div class="card p-5 card-hover transition-all"><div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-[var(--secondary)] flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-[var(--muted-foreground)]"></i></div><div><h4 class="font-semibold">${bot.name || bot.id}</h4><p class="text-xs text-[var(--muted-foreground)]">${bot.id}</p><a href="${moltbookUrl}" target="_blank" rel="noopener" class="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 mt-0.5"><i data-lucide="external-link" class="w-3 h-3"></i>Moltbook Profile</a></div></div></div><div class="space-y-4"><div><div class="flex items-center justify-between text-xs mb-1"><span class="text-[var(--muted-foreground)]">Trust Score</span><span class="font-medium ${(bot.trust || 0) >= 90 ? 'text-[var(--success)]' : (bot.trust || 0) >= 70 ? 'text-[var(--warning)]' : 'text-[var(--destructive)]'}">${bot.trust || 0}/100</span></div><div class="trust-bar"><div class="trust-fill ${(bot.trust || 0) >= 90 ? 'bg-[var(--success)]' : (bot.trust || 0) >= 70 ? 'bg-[var(--warning)]' : 'bg-[var(--destructive)]'}" style="width: ${bot.trust || 0}%"></div></div></div><div class="grid grid-cols-3 gap-2 text-center"><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Stake</p><p class="text-sm font-semibold">${bot.stake || 0} SOL</p></div><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Accuracy</p><p class="text-sm font-semibold ${(bot.accuracy || 0) >= 90 ? 'text-[var(--success)]' : ''}">${bot.accuracy || 0}%</p></div><div class="bg-[var(--muted)] rounded-lg p-2"><p class="text-[10px] text-[var(--muted-foreground)]">Predictions</p><p class="text-sm font-semibold">${bot.predictions || 0}</p></div></div>${bot.lastPrediction ? `<div class="pt-3 border-t border-[var(--border)]"><p class="text-[10px] text-[var(--muted-foreground)]">Last: ${bot.lastPrediction}</p></div>` : ''}</div></div>`;
+            }).join('');
             lucide.createIcons();
         }
 
