@@ -14,6 +14,7 @@ const MOLTBOOK_API_BASE = 'https://www.moltbook.com/api/v1';
 
 // In-memory storage (replace with database in production)
 const agents = new Map();
+const verdicts = new Map();
 const pendingRegistrations = new Map();
 
 /**
@@ -231,10 +232,20 @@ app.get('/api/v1/agents/:id/rewards', (req, res) => {
  * Get active/pending verdicts
  */
 app.get('/api/v1/verdicts', (req, res) => {
-    // Return empty array - will be populated from Solana in production
+    const { status } = req.query;
+    
+    // Convert Map to array and sort by submitted time (newest first)
+    let verdictsList = Array.from(verdicts.values())
+        .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+    
+    // Filter by status if provided
+    if (status && status !== 'all') {
+        verdictsList = verdictsList.filter(v => v.status === status);
+    }
+    
     res.json({
         success: true,
-        verdicts: []
+        verdicts: verdictsList
     });
 });
 
@@ -261,16 +272,47 @@ app.post('/api/v1/verdicts', (req, res) => {
         });
     }
 
-    // In production: submit to Solana program
+    const agent = agents.get(sentry_id);
+    const verdict_id = `v_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date();
+    
+    // Create verdict object
+    const verdictData = {
+        id: verdict_id,
+        token_mint,
+        token: token_mint.substring(0, 8) + '...',
+        verdict,
+        confidence: confidence || 50,
+        stake: stake || 0.1,
+        sentry_id,
+        agent_name: agent.moltbook_said,
+        submitted_at: now.toISOString(),
+        time: now.toLocaleTimeString('en-US', { hour12: false }),
+        status: 'pending',
+        safe_votes: verdict === 'safe' ? 1 : 0,
+        rug_votes: verdict === 'rug' ? 1 : 0,
+        safe_stake: verdict === 'safe' ? (stake || 0.1) : 0,
+        rug_stake: verdict === 'rug' ? (stake || 0.1) : 0,
+        total_votes: 1
+    };
+    
+    // Store verdict
+    verdicts.set(verdict_id, verdictData);
+    
+    // Update agent stats
+    agent.total_verdicts += 1;
+    agent.lastPrediction = `${verdict.toUpperCase()} on ${verdictData.token}`;
+
     res.json({
         success: true,
         message: 'Verdict submitted',
         verdict: {
-            token: token_mint,
+            id: verdict_id,
+            token: verdictData.token,
             verdict,
-            confidence: confidence || 50,
-            stake: stake || 0.1,
-            submitted_at: new Date().toISOString()
+            confidence: verdictData.confidence,
+            stake: verdictData.stake,
+            submitted_at: verdictData.submitted_at
         }
     });
 });
@@ -326,23 +368,33 @@ app.get('/api/v1/tokens/:mint', (req, res) => {
  * Get protocol statistics
  */
 app.get('/api/v1/protocol/stats', (req, res) => {
-    // Calculate stats from registered agents only
+    // Calculate stats from registered agents
     let totalStaked = 0;
+    let totalPredictions = 0;
     for (const agent of agents.values()) {
         totalStaked += parseFloat(agent.stake) || 0;
+        totalPredictions += agent.total_verdicts || 0;
     }
 
-    // Return empty/null stats if no agents registered
+    // Calculate rug detections (finalized verdicts where result was RUG)
+    let rugsDetected = 0;
+    for (const verdict of verdicts.values()) {
+        if (verdict.status === 'finalized' && verdict.final_verdict === 'rug') {
+            rugsDetected++;
+        }
+    }
+
+    // Return stats
     res.json({
         success: true,
         stats: {
             tvl: agents.size > 0 ? totalStaked : null,
             agentCount: agents.size > 0 ? agents.size : null,
-            rugsDetected: null,
+            rugsDetected: rugsDetected > 0 ? rugsDetected : null,
             accuracy: null,
-            quorumCurrent: null,
+            quorumCurrent: agents.size > 0 ? Math.min(agents.size, 3) : null,
             quorumRequired: 3,
-            totalVerdicts: null
+            totalVerdicts: verdicts.size > 0 ? verdicts.size : null
         },
         agents: Array.from(agents.values()).map(a => ({
             id: a.moltbook_said,
@@ -352,7 +404,7 @@ app.get('/api/v1/protocol/stats', (req, res) => {
             predictions: a.total_verdicts,
             correct: a.correct_verdicts,
             accuracy: a.total_verdicts > 0 ? Math.round((a.correct_verdicts / a.total_verdicts) * 100) : 0,
-            lastPrediction: null
+            lastPrediction: a.lastPrediction || null
         }))
     });
 });
