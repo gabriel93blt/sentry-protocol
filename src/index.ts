@@ -61,7 +61,7 @@ export class SentrySDK {
 
   constructor(
     connection: Connection,
-    programId: PublicKey = new PublicKey('EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm')
+    programId: PublicKey = new PublicKey('2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY')
   ) {
     this.connection = connection;
     this.programId = programId;

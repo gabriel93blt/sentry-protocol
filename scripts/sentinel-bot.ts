@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const NETWORK = 'devnet';
 const RPC_URL = 'https://api.devnet.solana.com';
-const PROGRAM_ID = new PublicKey('EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm');
+const PROGRAM_ID = new PublicKey('2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY');
 
 // Configuration du bot
 const CONFIG = {

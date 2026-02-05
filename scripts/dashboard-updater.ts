@@ -8,7 +8,7 @@ import { Sentry } from '../target/types/sentry';
 
 // Config
 const DASHBOARD_PATH = './dashboard/index.html';
-const PROGRAM_ID = new PublicKey('EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm');
+const PROGRAM_ID = new PublicKey('2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY');
 const UPDATE_INTERVAL_MS = 30000;
 
 async function main() {
