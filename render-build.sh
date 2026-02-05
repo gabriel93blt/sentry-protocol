@@ -1,46 +1,28 @@
 #!/bin/bash
-# Build script for Render - includes Solana CLI installation and deployment
+# Build script for Render - Simplified version without Solana CLI dependency
 
 set -e
 
 echo "🛠️  SENTRY Build Script"
 
-# Install Solana CLI if not present
-if ! command -v solana &> /dev/null; then
-    echo "📥 Installing Solana CLI..."
-    sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
-    export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-fi
+# Skip Solana CLI install - we'll check deployment status via API instead
+echo "⚠️  Skipping Solana CLI installation (SSL issues on Render)"
+echo "   Program deployment must be done manually or via external faucet"
 
-echo "✅ Solana CLI version:"
-solana --version
-
-# Set config
-echo "🔧 Configuring Solana..."
-solana config set --url https://api.devnet.solana.com
-solana config set --keypair ./wallet.json
-
-# Check balance
-echo "💰 Checking balance..."
-BALANCE=$(solana balance | cut -d' ' -f1)
-echo "Balance: $BALANCE SOL"
-
-# Deploy if needed
-echo "🚀 Checking program status..."
-if solana program show 2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY 2>/dev/null; then
-    echo "✅ Program already deployed"
-else
-    echo "📦 Deploying program..."
-    solana program deploy ./target/deploy/sentry.so \
-        --program-id ./target/deploy/sentry-keypair.json \
-        --max-len 500000
-    echo "✅ Deployment complete!"
-fi
-
-# Build API
+# Just build the API
 echo "📦 Building API..."
 cd api
 npm install
 npm run build
 
+echo ""
 echo "🎉 Build complete!"
+echo ""
+echo "⚠️  IMPORTANT: Program is NOT deployed yet!"
+echo "   New Program ID: 2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY"
+echo ""
+echo "To deploy:"
+echo "1. Go to https://faucet.solana.com"
+echo "2. Request SOL for: 3zvtcDRtfDV4MxA7B4huiWVVnBKzs7UcV2L8Q9hnUpSx"
+echo "3. Call POST /api/v1/admin/initialize once deployed"
+echo ""
