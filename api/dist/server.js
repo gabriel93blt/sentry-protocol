@@ -42,6 +42,7 @@ const anchor = __importStar(require("@coral-xyz/anchor"));
 const web3_js_1 = require("@solana/web3.js");
 const fs = __importStar(require("fs"));
 const dotenv = __importStar(require("dotenv"));
+const db_1 = require("./db");
 dotenv.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -204,6 +205,26 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
             systemProgram: anchor.web3.SystemProgram.programId,
         })
             .rpc();
+        // Save to Supabase database
+        const agentRecord = {
+            id: sentinelPda.toBase58(),
+            sentry_id: sentinelPda.toBase58(),
+            moltbook_said: moltbookData?.name || null,
+            wallet_address: agentWallet,
+            stake_amount: stakeAmount,
+            reputation: 100,
+            correct_verdicts: 0,
+            total_verdicts: 0,
+            is_active: true,
+            registered_at: new Date().toISOString()
+        };
+        const dbResult = await (0, db_1.upsertAgent)(agentRecord);
+        if (!dbResult.success) {
+            console.warn('⚠️ Agent registered on-chain but DB save failed:', dbResult.error);
+        }
+        else {
+            console.log('✅ Agent saved to database:', sentinelPda.toBase58());
+        }
         res.json({
             success: true,
             agentId: sentinelPda.toBase58(),
@@ -243,22 +264,45 @@ app.get('/api/v1/agents/:id', asyncHandler(async (req, res) => {
 }));
 app.get('/api/v1/agents', asyncHandler(async (req, res) => {
     try {
-        const sentinels = await program.account.sentinel.all();
-        res.json({
-            success: true,
-            agents: sentinels.map((s) => ({
-                id: s.publicKey.toBase58(),
-                authority: s.account.authority.toBase58(),
-                stake: s.account.stake.toNumber() / 1e9,
-                reputation: s.account.reputation,
-                correctVerdicts: s.account.correctVerdicts.toNumber(),
-                totalVerdicts: s.account.totalVerdicts.toNumber(),
-                isActive: s.account.isActive,
-                accuracy: s.account.totalVerdicts.toNumber() > 0
-                    ? Math.round((s.account.correctVerdicts.toNumber() / s.account.totalVerdicts.toNumber()) * 100)
-                    : 0
-            }))
-        });
+        // Fetch from Supabase database
+        const dbResult = await (0, db_1.getAllAgents)();
+        if (dbResult.success && dbResult.agents && dbResult.agents.length > 0) {
+            res.json({
+                success: true,
+                agents: dbResult.agents.map((a) => ({
+                    id: a.sentry_id,
+                    authority: a.wallet_address,
+                    stake: a.stake_amount,
+                    reputation: a.reputation,
+                    correctVerdicts: a.correct_verdicts,
+                    totalVerdicts: a.total_verdicts,
+                    isActive: a.is_active,
+                    moltbookSaid: a.moltbook_said,
+                    accuracy: a.total_verdicts > 0
+                        ? Math.round((a.correct_verdicts / a.total_verdicts) * 100)
+                        : 0
+                }))
+            });
+        }
+        else {
+            // Fallback to on-chain data if DB is empty
+            const sentinels = await program.account.sentinel.all();
+            res.json({
+                success: true,
+                agents: sentinels.map((s) => ({
+                    id: s.publicKey.toBase58(),
+                    authority: s.account.authority.toBase58(),
+                    stake: s.account.stake.toNumber() / 1e9,
+                    reputation: s.account.reputation,
+                    correctVerdicts: s.account.correctVerdicts.toNumber(),
+                    totalVerdicts: s.account.totalVerdicts.toNumber(),
+                    isActive: s.account.isActive,
+                    accuracy: s.account.totalVerdicts.toNumber() > 0
+                        ? Math.round((s.account.correctVerdicts.toNumber() / s.account.totalVerdicts.toNumber()) * 100)
+                        : 0
+                }))
+            });
+        }
     }
     catch (e) {
         res.status(500).json({ success: false, error: e.message });
