@@ -294,7 +294,6 @@
                             <tr class="border-b border-[var(--border)] bg-[var(--muted)]/50">
                                 <th class="h-10 px-4 text-left text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Time</th>
                                 <th class="h-10 px-4 text-left text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Token</th>
-                                <th class="h-10 px-4 text-center text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Agents</th>
                                 <th class="h-10 px-4 text-center text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Status</th>
                                 <th class="h-10 px-4 text-center text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Battle</th>
                                 <th class="h-10 px-4 text-right text-[10px] font-medium text-[var(--muted-foreground)] uppercase">Pool</th>
@@ -481,20 +480,32 @@
             const displayData = data || protocolData.verdicts;
             const tbody = document.getElementById('verdict-table');
             
-            if (displayData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-[var(--muted-foreground)]">No verdicts yet. Connect your agent to see live data.</td></tr>`;
+            if (!displayData || displayData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-[var(--muted-foreground)]">No verdicts yet. Connect your agent to see live data.</td></tr>`;
                 return;
             }
             
-            tbody.innerHTML = displayData.map(v => {
-                // Use snake_case from API response
-                const safeStake = v.safe_stake || 0;
-                const rugStake = v.rug_stake || 0;
-                const safeVoters = v.safe_votes || 0;
-                const rugVoters = v.rug_votes || 0;
-                const poolTotal = safeStake + rugStake;
+            // Filter out invalid entries and limit to max 50 rows
+            const validData = displayData
+                .filter(v => v && v.tokenMint)
+                .slice(0, 50);
+            
+            if (validData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-sm text-[var(--muted-foreground)]">No valid verdict data available.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = validData.map(v => {
+                // Handle both snake_case and camelCase from API
+                const safeStake = v.safeStake || v.safe_stake || 0;
+                const dangerStake = v.dangerStake || v.danger_stake || v.rug_stake || 0;
+                const safeVoters = v.safeVotes || v.safe_votes || 0;
+                const dangerVoters = v.dangerVotes || v.danger_votes || v.rug_votes || 0;
+                const poolTotal = safeStake + dangerStake;
+                const tokenDisplay = v.tokenMint ? v.tokenMint.slice(0, 8) + '...' : 'Unknown';
+                const date = v.createdAt ? new Date(v.createdAt).toLocaleTimeString() : '--:--:--';
                 
-                return `<tr class="hover:bg-[var(--muted)]/50 transition-colors"><td class="px-4 py-3 text-xs font-mono text-[var(--muted-foreground)]">${v.time || '--:--:--'}</td><td class="px-4 py-3"><div class="flex items-center gap-2"><span class="text-sm font-mono font-medium">${v.token || 'Unknown'}</span><button onclick="copyToClipboard('${v.token_mint || v.token || ''}')" class="p-1 rounded hover:bg-[var(--muted)] transition-colors"><i data-lucide="copy" class="w-3 h-3 text-[var(--muted-foreground)]"></i></button></div></td><td class="px-4 py-3"><div class="flex flex-col gap-1 items-center">${renderAgentFromVerdict(v)}</div></td><td class="px-4 py-3 text-center">${getStatusBadge(v.status, v.final_verdict)}</td><td class="px-4 py-3">${renderBattle(safeStake, rugStake, safeVoters, rugVoters)}</td><td class="px-4 py-3 text-right"><span class="text-sm font-medium">${poolTotal.toFixed(2)} SOL</span></td></tr>`;
+                return `<tr class="hover:bg-[var(--muted)]/50 transition-colors"><td class="px-4 py-3 text-xs font-mono text-[var(--muted-foreground)]">${date}</td><td class="px-4 py-3"><div class="flex items-center gap-2"><span class="text-sm font-mono font-medium" title="${v.tokenMint || ''}">${tokenDisplay}</span><button onclick="copyToClipboard('${v.tokenMint || ''}')" class="p-1 rounded hover:bg-[var(--muted)] transition-colors"><i data-lucide="copy" class="w-3 h-3 text-[var(--muted-foreground)]"></i></button></div></td><td class="px-4 py-3 text-center">${getStatusBadge(v.status, v.finalVerdict || v.final_verdict)}</td><td class="px-4 py-3">${renderBattle(safeStake, dangerStake, safeVoters, dangerVoters)}</td><td class="px-4 py-3 text-right"><span class="text-sm font-medium">${poolTotal.toFixed(2)} SOL</span></td></tr>`;
             }).join('');
             lucide.createIcons();
         }
