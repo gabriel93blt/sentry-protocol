@@ -1,3 +1,2 @@
-// Entry point for Render - launches TypeScript server
-require('ts-node/register');
-require('./server.ts');
+// Compiled entry point - generated from server.ts
+require('./dist/server.js');
