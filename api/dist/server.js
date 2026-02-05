@@ -540,6 +540,72 @@ app.get('/shield/:mint', asyncHandler(async (req, res) => {
         });
     }
 }));
+// ============ ADMIN ENDPOINTS ============
+app.get('/api/v1/admin/status', asyncHandler(async (req, res) => {
+    try {
+        // Check if program is deployed
+        const programInfo = await connection.getAccountInfo(PROGRAM_ID);
+        const isDeployed = programInfo !== null;
+        // Check if protocol is initialized
+        let isInitialized = false;
+        let protocolData = null;
+        try {
+            const [protocolPda] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('v2')], PROGRAM_ID);
+            protocolData = await program.account.protocol.fetch(protocolPda);
+            isInitialized = true;
+        }
+        catch {
+            isInitialized = false;
+        }
+        // Check wallet balance
+        const balance = await connection.getBalance(adminWallet.publicKey);
+        res.json({
+            success: true,
+            status: {
+                programDeployed: isDeployed,
+                programId: PROGRAM_ID.toBase58(),
+                programSize: programInfo?.data?.length || 0,
+                protocolInitialized: isInitialized,
+                walletBalance: balance / 1e9,
+                adminWallet: adminWallet.publicKey.toBase58()
+            }
+        });
+    }
+    catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+}));
+app.post('/api/v1/admin/initialize', asyncHandler(async (req, res) => {
+    try {
+        const [protocolPda] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('v2')], PROGRAM_ID);
+        const [vaultPda] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('vault')], PROGRAM_ID);
+        const tx = await program.methods
+            .initialize({
+            min_stake: new anchor.BN(0.1 * 1e9), // 0.1 SOL
+            verdict_window: 120, // 2 minutes
+            grace_period: 18000, // 5 hours
+            quorum: 1,
+            slash_percent: 50
+        })
+            .accounts({
+            protocol: protocolPda,
+            vault: vaultPda,
+            admin: adminWallet.publicKey,
+            systemProgram: web3_js_1.SystemProgram.programId
+        })
+            .signers([adminWallet])
+            .rpc();
+        res.json({
+            success: true,
+            message: 'Protocol initialized successfully',
+            transaction: tx
+        });
+    }
+    catch (e) {
+        console.error('Initialization error:', e);
+        res.status(500).json({ success: false, error: e.message });
+    }
+}));
 // ============ STATIC FILES ============
 app.use(express_1.default.static('../dashboard'));
 app.use('/skills.md', express_1.default.static('../docs/skills.md'));
