@@ -235,6 +235,75 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
   }
 }));
 
+// ============ SYNC AGENT MOLTBOOK INFO ============
+
+app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
+  const { wallet: agentWallet, moltbookApiKey } = req.body;
+  
+  if (!agentWallet || !moltbookApiKey) {
+    return res.status(400).json({ success: false, error: 'Missing wallet or moltbookApiKey' });
+  }
+  
+  try {
+    // Verify Moltbook
+    const moltResponse = await axios.get(`${MOLTBOOK_API}/api/v1/agents/me`, {
+      headers: { 'Authorization': `Bearer ${moltbookApiKey}` },
+      timeout: 5000
+    });
+    
+    if (!moltResponse.data?.claimed) {
+      return res.status(403).json({ success: false, error: 'Moltbook agent not claimed' });
+    }
+    
+    const moltbookData = moltResponse.data;
+    const authority = new PublicKey(agentWallet);
+    
+    // Get sentinel PDA
+    const [sentinelPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from('sentinel'), authority.toBuffer()],
+      PROGRAM_ID
+    );
+    
+    // Fetch on-chain data
+    const sentinel = await program.account.sentinel.fetch(sentinelPda);
+    
+    // Update in Supabase
+    const agentRecord = {
+      id: sentinelPda.toBase58(),
+      sentry_id: sentinelPda.toBase58(),
+      moltbook_said: moltbookData.name || moltbookData.said,
+      wallet_address: agentWallet,
+      stake_amount: sentinel.stake.toNumber() / 1e9,
+      reputation: sentinel.reputation,
+      correct_verdicts: sentinel.correctVerdicts.toNumber(),
+      total_verdicts: sentinel.totalVerdicts.toNumber(),
+      is_active: sentinel.isActive,
+      registered_at: new Date(sentinel.registeredAt.toNumber() * 1000).toISOString()
+    };
+    
+    const dbResult = await upsertAgent(agentRecord);
+    
+    if (!dbResult.success) {
+      return res.status(500).json({ success: false, error: 'DB update failed', details: dbResult.error });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Agent synced with Moltbook',
+      agent: {
+        id: sentinelPda.toBase58(),
+        moltbookSaid: moltbookData.name || moltbookData.said,
+        wallet: agentWallet,
+        stake: sentinel.stake.toNumber() / 1e9,
+        reputation: sentinel.reputation
+      }
+    });
+  } catch (e: any) {
+    console.error('Sync error:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}));
+
 app.get('/api/v1/agents/:id', asyncHandler(async (req, res) => {
   try {
     const sentinelPda = new PublicKey(req.params.id);
