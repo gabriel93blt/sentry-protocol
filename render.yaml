@@ -3,8 +3,8 @@ services:
     name: sentry-api
     runtime: node
     plan: starter
-    buildCommand: cd api && npm install && npm run build
-    startCommand: cd api && npm start
+    buildCommand: cd api && npm install && npx tsc --noEmit
+    startCommand: cd api && npx ts-node server.ts
     envVars:
       - key: NODE_ENV
         value: production
