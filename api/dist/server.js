@@ -51,7 +51,7 @@ const NETWORK = process.env.NETWORK || 'devnet';
 const RPC_URL = NETWORK === 'mainnet'
     ? process.env.MAINNET_RPC || 'https://api.mainnet-beta.solana.com'
     : 'https://api.devnet.solana.com';
-const MOLTBOOK_API = process.env.MOLTBOOK_API || 'https://api.moltbook.com';
+const MOLTBOOK_API = process.env.MOLTBOOK_API || 'https://www.moltbook.com/api/v1';
 const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY;
 const PROGRAM_ID = new web3_js_1.PublicKey('EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm');
 // Load admin wallet from file or env
