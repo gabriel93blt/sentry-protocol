@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: sentry-api
+    runtime: node
+    plan: starter
+    buildCommand: cd api && npm install && npm run build
+    startCommand: cd api && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NETWORK
+        value: devnet
+      - key: ADMIN_WALLET_PATH
+        value: ../wallet.json
+      - key: SENTINEL_WALLET_PATH
+        value: ../sentinel-wallet.json
+      - key: MOLTBOOK_API_KEY
+        sync: false
+    rootDir: .
+    healthCheckPath: /health

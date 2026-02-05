@@ -1,28 +1,13 @@
 {
-  "name": "sentry-sdk",
-  "version": "0.1.0",
-  "description": "SENTRY SDK - Decentralized Truth Layer for Token Security",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "name": "sentry-protocol",
+  "version": "2.0.0",
+  "description": "SENTRY - Decentralized Truth Layer for Token Security",
   "scripts": {
-    "build": "tsc",
-    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
-    "build:ts": "tsc"
+    "build": "cd api && npm install",
+    "start": "cd api && npm start",
+    "dev": "cd api && npm run dev"
   },
-  "dependencies": {
-    "@coral-xyz/anchor": "0.32.1",
-    "@solana/web3.js": "^1.87.0",
-    "bn.js": "^5.2.1"
-  },
-  "devDependencies": {
-    "@types/bn.js": "^5.1.5",
-    "@types/chai": "^4.3.11",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "^20.10.0",
-    "chai": "^4.3.10",
-    "mocha": "^10.2.0",
-    "ts-mocha": "^10.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
