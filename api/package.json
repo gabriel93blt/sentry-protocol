@@ -1,19 +1,32 @@
 {
   "name": "sentry-api",
-  "version": "1.0.0",
-  "description": "SENTRY Protocol API with Moltbook integration",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "SENTRY Protocol API - Decentralized Truth Layer",
+  "main": "server.ts",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "ts-node server.ts",
+    "dev": "ts-node-dev --respawn server.ts",
+    "build": "tsc",
+    "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.47.10",
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.87.0",
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "node-fetch": "^2.7.0"
+    "dotenv": "^16.3.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "@types/cors": "^2.8.15",
+    "@types/express": "^4.17.20",
+    "@types/node": "^20.8.0",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
