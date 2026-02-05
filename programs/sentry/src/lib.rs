@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("2f438Z16QoVnArKRhN3P6oJysen1aimVnnr7vS5nTPaY");
+declare_id!("EPccz8vhrRpLK6w4WwPQn5aMC2Hh6onsD24qmtUVK1sm");
 
 #[program]
 pub mod sentry {
