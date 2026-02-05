@@ -563,8 +563,8 @@ app.get('/shield/:mint', asyncHandler(async (req, res) => {
 
 // ============ STATIC FILES ============
 
-app.use(express.static('dashboard'));
-app.use('/skills.md', express.static('docs/skills.md'));
+app.use(express.static('../dashboard'));
+app.use('/skills.md', express.static('../docs/skills.md'));
 
 // ============ ERROR HANDLING ============
 
