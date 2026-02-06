@@ -118,6 +118,10 @@ app.get('/api/v1/protocol/stats', asyncHandler(async (req, res) => {
     const [protocolPda] = PublicKey.findProgramAddressSync([Buffer.from('v2')], PROGRAM_ID);
     const protocol = await program.account.protocol.fetch(protocolPda);
     
+    // Fetch agents for leaderboard
+    const agentsResult = await getAllAgents();
+    const agents = agentsResult.success ? agentsResult.agents : [];
+
     const result = {
       success: true,
       stats: {
@@ -130,7 +134,20 @@ app.get('/api/v1/protocol/stats', asyncHandler(async (req, res) => {
         minStake: protocol.minStake.toNumber() / 1e9,
         slashPercent: protocol.slashPercent,
         verdictWindow: protocol.verdictWindow
-      }
+      },
+      agents: agents?.map((a: any) => ({
+        id: a.moltbook_said || a.sentry_id,
+        name: a.moltbook_said,
+        trust: a.trust_score || 0,
+        stake: a.stake || 0,
+        predictions: a.total_verdicts || 0,
+        correct: a.correct_verdicts || 0,
+        accuracy: (a.total_verdicts > 0 && a.correct_verdicts) 
+          ? Math.round((a.correct_verdicts / a.total_verdicts) * 100) 
+          : 0,
+        lastPrediction: a.last_prediction || null,
+        status: a.status
+      })) || []
     };
     
     setCache('protocol_stats', result);
