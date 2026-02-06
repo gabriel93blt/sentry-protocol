@@ -251,13 +251,13 @@ app.post('/api/v1/agents/sync', asyncHandler(async (req, res) => {
     // Fetch on-chain data
     const sentinel = await program.account.sentinel.fetch(sentinelPda);
     
-    // Save to Supabase - ultra minimal
+    // Save to Supabase - match schema
     const agentRecord = {
       sentry_id: sentinelPda.toBase58(),
-      moltbook_said: moltbookSaid || undefined,
+      moltbook_said: moltbookSaid || 'Unknown',
       wallet_address: agentWallet,
-      stake_amount: sentinel.stake.toNumber() / 1e9,
-      reputation: sentinel.reputation
+      stake: sentinel.stake.toNumber() / 1e9,
+      trust_score: sentinel.reputation
     };
     
     const dbResult = await upsertAgent(agentRecord);
@@ -315,13 +315,13 @@ app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
     // Fetch on-chain data
     const sentinel = await program.account.sentinel.fetch(sentinelPda);
     
-    // Update in Supabase - ultra minimal
+    // Update in Supabase - match schema
     const agentRecord = {
       sentry_id: sentinelPda.toBase58(),
-      moltbook_said: moltbookData.name || moltbookData.said,
+      moltbook_said: moltbookData.name || moltbookData.said || 'Unknown',
       wallet_address: agentWallet,
-      stake_amount: sentinel.stake.toNumber() / 1e9,
-      reputation: sentinel.reputation
+      stake: sentinel.stake.toNumber() / 1e9,
+      trust_score: sentinel.reputation
     };
     
     const dbResult = await upsertAgent(agentRecord);

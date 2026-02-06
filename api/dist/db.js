@@ -59,12 +59,17 @@ async function upsertAgent(agent) {
         // Match actual Supabase schema
         const dbAgent = {
             sentry_id: agent.sentry_id,
+            moltbook_said: agent.moltbook_said || 'Unknown',
             wallet_address: agent.wallet_address,
-            stake: agent.stake_amount // Changed from stake_amount to stake
+            stake: agent.stake || 0.1
         };
-        // Only add if exists
-        if (agent.moltbook_said)
-            dbAgent.moltbook_said = agent.moltbook_said;
+        // Optional fields
+        if (agent.trust_score !== undefined)
+            dbAgent.trust_score = agent.trust_score;
+        if (agent.total_verdicts !== undefined)
+            dbAgent.total_verdicts = agent.total_verdicts;
+        if (agent.status)
+            dbAgent.status = agent.status;
         const { error } = await supabase
             .from('agents')
             .upsert(dbAgent, {

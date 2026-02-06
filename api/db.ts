@@ -15,20 +15,17 @@ if (supabaseUrl && supabaseKey) {
   console.warn('⚠️ Supabase credentials not configured - database features disabled');
 }
 
-// Agent types - minimal fields for compatibility
+// Agent types - matching Supabase schema
 export interface AgentRecord {
   id?: string;
   sentry_id: string;
-  moltbook_said?: string | null;
+  moltbook_said: string;
   wallet_address: string;
-  stake_amount: number;
-  reputation?: number;
-  correct_verdicts?: number;
+  stake?: number;
+  trust_score?: number;
   total_verdicts?: number;
-  is_active?: boolean;
+  status?: string;
   registered_at?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 // Create or update agent - for Supabase schema
@@ -41,12 +38,15 @@ export async function upsertAgent(agent: AgentRecord): Promise<{ success: boolea
     // Match actual Supabase schema
     const dbAgent: any = {
       sentry_id: agent.sentry_id,
+      moltbook_said: agent.moltbook_said || 'Unknown',
       wallet_address: agent.wallet_address,
-      stake: agent.stake_amount  // Changed from stake_amount to stake
+      stake: agent.stake || 0.1
     };
     
-    // Only add if exists
-    if (agent.moltbook_said) dbAgent.moltbook_said = agent.moltbook_said;
+    // Optional fields
+    if (agent.trust_score !== undefined) dbAgent.trust_score = agent.trust_score;
+    if (agent.total_verdicts !== undefined) dbAgent.total_verdicts = agent.total_verdicts;
+    if (agent.status) dbAgent.status = agent.status;
     
     const { error } = await supabase
       .from('agents')
