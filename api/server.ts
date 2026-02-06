@@ -235,6 +235,64 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
   }
 }));
 
+// ============ SYNC AGENT TO DATABASE ============
+
+app.post('/api/v1/agents/sync', asyncHandler(async (req, res) => {
+  const { wallet: agentWallet, moltbookSaid } = req.body;
+  
+  if (!agentWallet) {
+    return res.status(400).json({ success: false, error: 'Missing wallet' });
+  }
+  
+  try {
+    const authority = new PublicKey(agentWallet);
+    
+    // Get sentinel PDA
+    const [sentinelPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from('sentinel'), authority.toBuffer()],
+      PROGRAM_ID
+    );
+    
+    // Fetch on-chain data
+    const sentinel = await program.account.sentinel.fetch(sentinelPda);
+    
+    // Save to Supabase
+    const agentRecord = {
+      id: sentinelPda.toBase58(),
+      sentry_id: sentinelPda.toBase58(),
+      moltbook_said: moltbookSaid || null,
+      wallet_address: agentWallet,
+      stake_amount: sentinel.stake.toNumber() / 1e9,
+      reputation: sentinel.reputation,
+      correct_verdicts: sentinel.correctVerdicts.toNumber(),
+      total_verdicts: sentinel.totalVerdicts.toNumber(),
+      is_active: sentinel.isActive,
+      registered_at: new Date(sentinel.registeredAt.toNumber() * 1000).toISOString()
+    };
+    
+    const dbResult = await upsertAgent(agentRecord);
+    
+    if (!dbResult.success) {
+      return res.status(500).json({ success: false, error: 'DB update failed', details: dbResult.error });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Agent synced to database',
+      agent: {
+        id: sentinelPda.toBase58(),
+        moltbookSaid: moltbookSaid || null,
+        wallet: agentWallet,
+        stake: sentinel.stake.toNumber() / 1e9,
+        reputation: sentinel.reputation
+      }
+    });
+  } catch (e: any) {
+    console.error('Sync error:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+}));
+
 // ============ SYNC AGENT MOLTBOOK INFO ============
 
 app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
@@ -246,7 +304,7 @@ app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
   
   try {
     // Verify Moltbook
-    const moltResponse = await axios.get(`${MOLTBOOK_API}/api/v1/agents/me`, {
+    const moltResponse = await axios.get(`${MOLTBOOK_API}/agents/me`, {
       headers: { 'Authorization': `Bearer ${moltbookApiKey}` },
       timeout: 5000
     });
