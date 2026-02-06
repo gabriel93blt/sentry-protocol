@@ -358,15 +358,8 @@ app.get('/api/v1/agents', asyncHandler(async (req, res) => {
                 agents: dbResult.agents.map((a) => ({
                     id: a.sentry_id,
                     authority: a.wallet_address,
-                    stake: a.stake_amount,
-                    reputation: a.reputation,
-                    correctVerdicts: a.correct_verdicts,
-                    totalVerdicts: a.total_verdicts,
-                    isActive: a.is_active,
-                    moltbookSaid: a.moltbook_said,
-                    accuracy: a.total_verdicts > 0
-                        ? Math.round((a.correct_verdicts / a.total_verdicts) * 100)
-                        : 0
+                    stake: a.stake, // DB uses 'stake' not 'stake_amount'
+                    moltbookSaid: a.moltbook_said
                 }))
             });
         }
