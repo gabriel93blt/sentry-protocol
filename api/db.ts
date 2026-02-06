@@ -31,27 +31,26 @@ export interface AgentRecord {
   updated_at?: string;
 }
 
-// Create or update agent - ultra minimal for Supabase
+// Create or update agent - for Supabase schema
 export async function upsertAgent(agent: AgentRecord): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
   }
   
   try {
-    // Ultra minimal - only required fields
-    const minimalAgent: any = {
+    // Match actual Supabase schema
+    const dbAgent: any = {
       sentry_id: agent.sentry_id,
       wallet_address: agent.wallet_address,
-      stake_amount: agent.stake_amount
+      stake: agent.stake_amount  // Changed from stake_amount to stake
     };
     
-    // Only add optional fields if they exist
-    if (agent.moltbook_said) minimalAgent.moltbook_said = agent.moltbook_said;
-    if (agent.reputation !== undefined) minimalAgent.reputation = agent.reputation;
+    // Only add if exists
+    if (agent.moltbook_said) dbAgent.moltbook_said = agent.moltbook_said;
     
     const { error } = await supabase
       .from('agents')
-      .upsert(minimalAgent, {
+      .upsert(dbAgent, {
         onConflict: 'sentry_id'
       });
 
