@@ -15,35 +15,42 @@ if (supabaseUrl && supabaseKey) {
   console.warn('⚠️ Supabase credentials not configured - database features disabled');
 }
 
-// Agent types
+// Agent types - minimal fields for compatibility
 export interface AgentRecord {
   id: string;
   sentry_id: string;
-  moltbook_said: string | null;
+  moltbook_said?: string | null;
   wallet_address: string;
   stake_amount: number;
-  reputation: number;
-  correct_verdicts: number;
-  total_verdicts: number;
-  is_active: boolean;
-  registered_at: string;
+  reputation?: number;
+  correct_verdicts?: number;
+  total_verdicts?: number;
+  is_active?: boolean;
+  registered_at?: string;
   created_at?: string;
   updated_at?: string;
 }
 
-// Create or update agent
+// Create or update agent - simplified to match any schema
 export async function upsertAgent(agent: AgentRecord): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'Database not configured' };
   }
   
   try {
+    // Try to insert with minimal fields first
+    const minimalAgent = {
+      id: agent.id,
+      sentry_id: agent.sentry_id,
+      wallet_address: agent.wallet_address,
+      stake_amount: agent.stake_amount,
+      reputation: agent.reputation,
+      is_active: agent.is_active
+    };
+    
     const { error } = await supabase
       .from('agents')
-      .upsert({
-        ...agent,
-        updated_at: new Date().toISOString()
-      }, {
+      .upsert(minimalAgent, {
         onConflict: 'sentry_id'
       });
 

@@ -199,7 +199,7 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
       })
       .rpc();
     
-    // Save to Supabase database
+    // Save to Supabase database - minimal fields
     const agentRecord = {
       id: sentinelPda.toBase58(),
       sentry_id: sentinelPda.toBase58(),
@@ -207,10 +207,7 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
       wallet_address: agentWallet,
       stake_amount: stakeAmount,
       reputation: 100,
-      correct_verdicts: 0,
-      total_verdicts: 0,
-      is_active: true,
-      registered_at: new Date().toISOString()
+      is_active: true
     };
     
     const dbResult = await upsertAgent(agentRecord);
@@ -256,7 +253,7 @@ app.post('/api/v1/agents/sync', asyncHandler(async (req, res) => {
     // Fetch on-chain data
     const sentinel = await program.account.sentinel.fetch(sentinelPda);
     
-    // Save to Supabase
+    // Save to Supabase - minimal fields
     const agentRecord = {
       id: sentinelPda.toBase58(),
       sentry_id: sentinelPda.toBase58(),
@@ -264,10 +261,7 @@ app.post('/api/v1/agents/sync', asyncHandler(async (req, res) => {
       wallet_address: agentWallet,
       stake_amount: sentinel.stake.toNumber() / 1e9,
       reputation: sentinel.reputation,
-      correct_verdicts: sentinel.correctVerdicts.toNumber(),
-      total_verdicts: sentinel.totalVerdicts.toNumber(),
-      is_active: sentinel.isActive,
-      registered_at: new Date(sentinel.registeredAt.toNumber() * 1000).toISOString()
+      is_active: sentinel.isActive
     };
     
     const dbResult = await upsertAgent(agentRecord);
@@ -325,7 +319,7 @@ app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
     // Fetch on-chain data
     const sentinel = await program.account.sentinel.fetch(sentinelPda);
     
-    // Update in Supabase
+    // Update in Supabase - minimal fields
     const agentRecord = {
       id: sentinelPda.toBase58(),
       sentry_id: sentinelPda.toBase58(),
@@ -333,10 +327,7 @@ app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
       wallet_address: agentWallet,
       stake_amount: sentinel.stake.toNumber() / 1e9,
       reputation: sentinel.reputation,
-      correct_verdicts: sentinel.correctVerdicts.toNumber(),
-      total_verdicts: sentinel.totalVerdicts.toNumber(),
-      is_active: sentinel.isActive,
-      registered_at: new Date(sentinel.registeredAt.toNumber() * 1000).toISOString()
+      is_active: sentinel.isActive
     };
     
     const dbResult = await upsertAgent(agentRecord);
