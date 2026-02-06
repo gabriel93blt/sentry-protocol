@@ -50,21 +50,23 @@ if (supabaseUrl && supabaseKey) {
 else {
     console.warn('⚠️ Supabase credentials not configured - database features disabled');
 }
-// Create or update agent - simplified to match any schema
+// Create or update agent - ultra minimal for Supabase
 async function upsertAgent(agent) {
     if (!supabase) {
         return { success: false, error: 'Database not configured' };
     }
     try {
-        // Try to insert with minimal fields first
+        // Ultra minimal - only required fields
         const minimalAgent = {
-            id: agent.id,
             sentry_id: agent.sentry_id,
             wallet_address: agent.wallet_address,
-            stake_amount: agent.stake_amount,
-            reputation: agent.reputation,
-            is_active: agent.is_active
+            stake_amount: agent.stake_amount
         };
+        // Only add optional fields if they exist
+        if (agent.moltbook_said)
+            minimalAgent.moltbook_said = agent.moltbook_said;
+        if (agent.reputation !== undefined)
+            minimalAgent.reputation = agent.reputation;
         const { error } = await supabase
             .from('agents')
             .upsert(minimalAgent, {

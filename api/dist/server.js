@@ -205,15 +205,13 @@ app.post('/api/v1/agents/register', asyncHandler(async (req, res) => {
             systemProgram: anchor.web3.SystemProgram.programId,
         })
             .rpc();
-        // Save to Supabase database - minimal fields
+        // Save to Supabase - ultra minimal
         const agentRecord = {
-            id: sentinelPda.toBase58(),
             sentry_id: sentinelPda.toBase58(),
-            moltbook_said: moltbookData?.name || null,
+            moltbook_said: moltbookData?.name || undefined,
             wallet_address: agentWallet,
             stake_amount: stakeAmount,
-            reputation: 100,
-            is_active: true
+            reputation: 100
         };
         const dbResult = await (0, db_1.upsertAgent)(agentRecord);
         if (!dbResult.success) {
@@ -249,15 +247,13 @@ app.post('/api/v1/agents/sync', asyncHandler(async (req, res) => {
         const [sentinelPda] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('sentinel'), authority.toBuffer()], PROGRAM_ID);
         // Fetch on-chain data
         const sentinel = await program.account.sentinel.fetch(sentinelPda);
-        // Save to Supabase - minimal fields
+        // Save to Supabase - ultra minimal
         const agentRecord = {
-            id: sentinelPda.toBase58(),
             sentry_id: sentinelPda.toBase58(),
-            moltbook_said: moltbookSaid || null,
+            moltbook_said: moltbookSaid || undefined,
             wallet_address: agentWallet,
             stake_amount: sentinel.stake.toNumber() / 1e9,
-            reputation: sentinel.reputation,
-            is_active: sentinel.isActive
+            reputation: sentinel.reputation
         };
         const dbResult = await (0, db_1.upsertAgent)(agentRecord);
         if (!dbResult.success) {
@@ -301,15 +297,13 @@ app.post('/api/v1/agents/sync-moltbook', asyncHandler(async (req, res) => {
         const [sentinelPda] = web3_js_1.PublicKey.findProgramAddressSync([Buffer.from('sentinel'), authority.toBuffer()], PROGRAM_ID);
         // Fetch on-chain data
         const sentinel = await program.account.sentinel.fetch(sentinelPda);
-        // Update in Supabase - minimal fields
+        // Update in Supabase - ultra minimal
         const agentRecord = {
-            id: sentinelPda.toBase58(),
             sentry_id: sentinelPda.toBase58(),
             moltbook_said: moltbookData.name || moltbookData.said,
             wallet_address: agentWallet,
             stake_amount: sentinel.stake.toNumber() / 1e9,
-            reputation: sentinel.reputation,
-            is_active: sentinel.isActive
+            reputation: sentinel.reputation
         };
         const dbResult = await (0, db_1.upsertAgent)(agentRecord);
         if (!dbResult.success) {
